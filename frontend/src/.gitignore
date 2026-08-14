@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Environment / secret
+.env
+.env.*
+*.key
+*.pem
+
+# MT5 / credentials
+mt5_login.txt
+credentials.json
+
+# Node
+node_modules/
+frontend/dist/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
