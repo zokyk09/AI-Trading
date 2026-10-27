@@ -17,6 +17,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   LocalSettings? _settings;
   Timer? _refreshTimer;
   Map<String, dynamic> _status = {}, _account = {}, _signal = {}, _auto = {};
+  Map<String, dynamic> _backtestData = {};
+  List<Map<String, dynamic>> _backtestReports = [];
+  String? _selectedBacktestId;
   List<dynamic> _positions = [], _history = [];
   bool _loading = false;
   String? _error;
@@ -26,6 +29,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool get _demoAccount =>
       _account['connected'] == true && _account['trade_mode'] == 0;
   bool get _autoEnabled => _auto['enabled'] == true;
+  Map<String, dynamic>? get _selectedBacktest {
+    for (final report in _backtestReports) {
+      if (report['id'] == _selectedBacktestId) return report;
+    }
+    return _backtestReports.isEmpty ? null : _backtestReports.first;
+  }
 
   @override
   void initState() {
@@ -64,7 +73,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _api.get('/api/auto'),
         _api.get('/api/history'),
       ]);
+      Map<String, dynamic> backtestData = {};
+      try {
+        backtestData = await _api.get('/api/backtests');
+      } catch (_) {
+        // Keep the live dashboard useful with an older backend version.
+      }
       if (!mounted) return;
+      final reports = (backtestData['reports'] as List? ?? [])
+          .whereType<Map>()
+          .map((report) => Map<String, dynamic>.from(report))
+          .toList();
       setState(() {
         _status = result[0];
         _account = result[1];
@@ -72,6 +91,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _positions = (result[3]['positions'] as List?) ?? [];
         _auto = result[4];
         _history = (result[5]['history'] as List?) ?? [];
+        _backtestData = backtestData;
+        _backtestReports = reports;
+        if (!reports.any((report) => report['id'] == _selectedBacktestId)) {
+          _selectedBacktestId = reports.isEmpty
+              ? null
+              : reports.first['id']?.toString();
+        }
         _loading = false;
         _error = null;
       });
@@ -93,6 +119,161 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return 'Home server tidak terjangkau. Pastikan HP dan server satu Wi-Fi, URL/IP benar, backend berjalan dengan --host 0.0.0.0 --port 8000, dan Windows Firewall mengizinkan TCP 8000. URL: $_apiUrl';
     }
     return 'Gagal mengambil data dari backend: $text';
+  }
+
+  String _metricNumber(Object? value, {int digits = 2}) {
+    if (value is! num) return '—';
+    return value.toStringAsFixed(digits);
+  }
+
+  String _metricPercent(Object? value) =>
+      value is num ? '${value.toStringAsFixed(2)}%' : 'Tidak dicantumkan';
+
+  String _metricPeriod(Map<String, dynamic> report) {
+    final start = report['period_start']?.toString();
+    final end = report['period_end']?.toString();
+    if (start == null && end == null) return 'Tidak dicantumkan';
+    return '${start ?? '?'} – ${end ?? '?'}';
+  }
+
+  Widget _backtestCard() {
+    final report = _selectedBacktest;
+    final plan = Map<String, dynamic>.from(
+      _backtestData['active_plan'] as Map? ?? {},
+    );
+    return InfoCard(
+      title: 'Analisa & backtest',
+      icon: Icons.analytics,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_backtestReports.isEmpty)
+            const Text('Belum ada file hasil backtest yang bisa ditampilkan.')
+          else ...[
+            DropdownButtonFormField<String>(
+              value: _selectedBacktestId,
+              isExpanded: true,
+              decoration: const InputDecoration(
+                labelText: 'Pilih laporan backtest',
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+              ),
+              items: _backtestReports
+                  .map(
+                    (item) => DropdownMenuItem<String>(
+                      value: item['id']?.toString(),
+                      child: Text(
+                        item['name']?.toString() ?? 'Laporan backtest',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) => setState(() => _selectedBacktestId = value),
+            ),
+            if (report != null) ...[
+              const SizedBox(height: 10),
+              DataRowView(
+                'Instrumen · timeframe',
+                '${report['symbol'] ?? 'XAUUSD'} · ${report['timeframe'] ?? '—'}',
+              ),
+              DataRowView('Periode simulasi', _metricPeriod(report)),
+              DataRowView('Jumlah transaksi', report['trade_count']),
+              DataRowView(
+                'Menang · kalah',
+                '${report['wins'] ?? 0} · ${report['losses'] ?? 0}',
+              ),
+              DataRowView(
+                'Akurasi prediksi',
+                _metricPercent(report['prediction_accuracy_percent']),
+              ),
+              DataRowView(
+                'Win rate transaksi',
+                _metricPercent(report['win_rate_percent']),
+              ),
+              DataRowView(
+                'Profit factor',
+                _metricNumber(report['profit_factor']),
+              ),
+              DataRowView(
+                'Net P/L (unit CSV)',
+                _metricNumber(report['net_pnl']),
+              ),
+              DataRowView(
+                'Expectancy / transaksi',
+                _metricNumber(report['expectancy_per_trade']),
+              ),
+              DataRowView(
+                'Drawdown maks. (unit CSV)',
+                _metricNumber(report['max_drawdown']),
+              ),
+              DataRowView(
+                'Median SL · TP',
+                '${_metricNumber(report['median_sl_distance'])} · ${_metricNumber(report['median_tp_distance'])}',
+              ),
+              DataRowView(
+                'R:R backtest',
+                report['reward_risk_ratio'] is num
+                    ? '1:${_metricNumber(report['reward_risk_ratio'])}'
+                    : 'Tidak dicantumkan',
+              ),
+            ],
+          ],
+          const SizedBox(height: 12),
+          const Text(
+            'Laporan ini hanya untuk ditinjau. Memilihnya tidak mengubah strategi robot. Win rate transaksi berbeda dari akurasi prediksi; hasil backtest adalah simulasi.',
+            style: TextStyle(color: Color(0xff9eabc1), fontSize: 12),
+          ),
+          if (plan.isNotEmpty) ...[
+            const Divider(height: 24),
+            const Text(
+              'Aturan strategi aktif',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 6),
+            DataRowView(
+              'Market · timeframe',
+              '${plan['symbol']} · ${plan['timeframe']}',
+            ),
+            DataRowView(
+              'Ukuran posisi',
+              '${plan['position_sizing']} · ${plan['volume']} lot',
+            ),
+            DataRowView(
+              'Risiko per transaksi',
+              _metricPercent(plan['risk_per_trade_percent']),
+            ),
+            DataRowView(
+              'Batas rugi harian',
+              _metricPercent(plan['daily_loss_limit_percent']),
+            ),
+            DataRowView('Posisi terbuka maks.', plan['max_open_positions']),
+            DataRowView(
+              'SL · TP',
+              '${plan['sl_distance']} · ${plan['tp_distance']}',
+            ),
+            DataRowView(
+              'R:R aktif',
+              '1:${_metricNumber(plan['reward_risk_ratio'])}',
+            ),
+            DataRowView(
+              'Confidence minimum',
+              _metricPercent(plan['confidence_threshold']),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                plan['risk_note']?.toString() ?? '',
+                style: const TextStyle(color: Color(0xffffc56b), fontSize: 12),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   Future<bool> _confirm({
@@ -538,6 +719,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 '${_signal['RSI'] ?? '-'} · ${_signal['EMA20'] ?? '-'} · ${_signal['EMA50'] ?? '-'}',
               ),
             ], Icons.show_chart),
+            _backtestCard(),
             InfoCard(
               title: 'Order manual demo',
               icon: Icons.swap_horiz,

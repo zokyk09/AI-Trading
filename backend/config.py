@@ -28,6 +28,7 @@ class Settings:
     stop_loss_distance: float = float(os.getenv("STOP_LOSS_DISTANCE", "1.00"))
     take_profit_distance: float = float(os.getenv("TAKE_PROFIT_DISTANCE", "2.00"))
     worker_interval_seconds: float = float(os.getenv("WORKER_INTERVAL_SECONDS", "5"))
+    max_open_positions: int = int(os.getenv("MAX_OPEN_POSITIONS", "1"))
     auto_magic: int = int(os.getenv("AUTO_MAGIC", "20260810"))
     manual_magic: int = int(os.getenv("MANUAL_MAGIC", "20260809"))
 
@@ -46,6 +47,8 @@ class Settings:
             raise ValueError("Stop loss and take profit distances must be positive")
         if self.worker_interval_seconds <= 0:
             raise ValueError("WORKER_INTERVAL_SECONDS must be positive")
+        if self.max_open_positions != 1:
+            raise ValueError("MAX_OPEN_POSITIONS is fixed at 1 in this demo build")
 
 
 settings = Settings()

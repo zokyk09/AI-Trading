@@ -30,6 +30,15 @@ class OrderManager:
         if not valid:
             return {"success": False, "message": message}
 
+        positions = self.mt5.positions_get(symbol=symbol)
+        if positions is None:
+            return {"success": False, "message": "Order blocked: could not verify open positions"}
+        if len(positions) >= self.config.max_open_positions:
+            return {
+                "success": False,
+                "message": f"Order blocked: max {self.config.max_open_positions} open {symbol} position is already reached",
+            }
+
         symbol_info = self.mt5.symbol_info(symbol)
         if symbol_info is None:
             return {"success": False, "message": f"Symbol {symbol} is unavailable"}

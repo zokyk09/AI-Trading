@@ -46,6 +46,6 @@ In the app, open **Koneksi home server** and enter `http://SERVER-IPv4:8000`. Ph
 
 ## Demo limits
 
-Current strategy: XAUUSD M5, fixed 0.01 lot, minimum confidence 55%, at most one open XAUUSD position, SL price distance 1.00 and TP price distance 2.00. The auto worker can submit orders after START; use demo and monitor MT5. The model does not guarantee profit.
+Current strategy: XAUUSD M5, fixed 0.01 lot, minimum confidence 55%, at most one open XAUUSD position (manual and automatic orders), SL price distance 1.00 and TP price distance 2.00. The mobile dashboard lists CSV backtest reports from `backend/*backtest*.csv` and `backend/backtests/*.csv`; report selection does not switch the live strategy. See `backend/backtests/README.md` for the CSV and metadata format. The auto worker can submit orders after START; use demo and monitor MT5. Risk-percentage sizing and a daily-loss stop are not configured in this build.
 
 `.env` and credentials are ignored by Git. Training/backtest scripts require separate research runs and do not execute when imported.
