@@ -2,86 +2,93 @@ import yfinance as yf
 from strategy import analyze
 
 
-# ambil data BTC 3 bulan
-data = yf.download(
-    "BTC-USD",
-    period="3mo",
-    interval="1h"
-)
 
 
-# rapikan data
-if len(data["Close"].shape) > 1:
-    data["Close"] = data["Close"].iloc[:,0]
+def main() -> None:
+    # ambil data BTC 3 bulan
+    data = yf.download(
+        "BTC-USD",
+        period="3mo",
+        interval="1h"
+    )
 
 
-balance = 1000
-position = 0
-
-buy_price = 0
-
-wins = 0
-losses = 0
+    # rapikan data
+    if len(data["Close"].shape) > 1:
+        data["Close"] = data["Close"].iloc[:,0]
 
 
-for i in range(50, len(data)):
+    balance = 1000
+    position = 0
 
-    current = data.iloc[:i]
+    buy_price = 0
 
-    result = analyze(current)
-
-    price = result["price"]
-    signal = result["signal"]
-
-
-    # beli
-    if signal == "BUY" and position == 0:
-
-        position = balance / price
-        buy_price = price
-
-        print("BUY at:", price)
+    wins = 0
+    losses = 0
 
 
+    for i in range(50, len(data)):
 
-    # jual
-    elif signal == "SELL" and position > 0:
+        current = data.iloc[:i]
 
-        balance = position * price
+        result = analyze(current)
 
-        profit = price - buy_price
+        price = result["price"]
+        signal = result["signal"]
 
-        if profit > 0:
-            wins += 1
-        else:
-            losses += 1
 
-        print("SELL at:", price)
+        # beli
+        if signal == "BUY" and position == 0:
 
-        position = 0
+            position = balance / price
+            buy_price = price
+
+            print("BUY at:", price)
 
 
 
-# hitung nilai akhir
+        # jual
+        elif signal == "SELL" and position > 0:
 
-if position > 0:
-    balance = position * data["Close"].iloc[-1]
+            balance = position * price
 
+            profit = price - buy_price
 
-total_trade = wins + losses
+            if profit > 0:
+                wins += 1
+            else:
+                losses += 1
 
+            print("SELL at:", price)
 
-print("\n=== BACKTEST RESULT ===")
-print("Modal awal : $1000")
-print("Saldo akhir:", round(balance,2))
-
-if total_trade > 0:
-    winrate = wins / total_trade * 100
-else:
-    winrate = 0
+            position = 0
 
 
-print("Trade :", total_trade)
-print("Win   :", wins)
-print("Loss  :", losses)
-print("Winrate:", round(winrate,2), "%")
+
+    # hitung nilai akhir
+
+    if position > 0:
+        balance = position * data["Close"].iloc[-1]
+
+
+    total_trade = wins + losses
+
+
+    print("\n=== BACKTEST RESULT ===")
+    print("Modal awal : $1000")
+    print("Saldo akhir:", round(balance,2))
+
+    if total_trade > 0:
+        winrate = wins / total_trade * 100
+    else:
+        winrate = 0
+
+
+    print("Trade :", total_trade)
+    print("Win   :", wins)
+    print("Loss  :", losses)
+    print("Winrate:", round(winrate,2), "%")
+
+
+if __name__ == "__main__":
+    main()

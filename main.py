@@ -2,21 +2,28 @@ import yfinance as yf
 from strategy import analyze
 
 
-data = yf.download(
-    "BTC-USD",
-    period="1mo",
-    interval="1h"
-)
 
 
-result = analyze(data)
+def main() -> None:
+    data = yf.download(
+        "BTC-USD",
+        period="1mo",
+        interval="1h"
+    )
 
 
-print("=== AI TRADING ===")
+    result = analyze(data)
 
-print("Price :", result["price"])
-print("RSI   :", result["rsi"])
-print("EMA   :", result["ema"])
-print("Trend :", result["trend"])
-print("Score :", result["score"], "%")
-print("Signal:", result["signal"])
+
+    print("=== AI TRADING ===")
+
+    print("Price :", result["price"])
+    print("RSI   :", result["rsi"])
+    print("EMA   :", result["ema"])
+    print("Trend :", result["trend"])
+    print("Score :", result["score"], "%")
+    print("Signal:", result["signal"])
+
+
+if __name__ == "__main__":
+    main()
