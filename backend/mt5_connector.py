@@ -9,7 +9,7 @@ from backend.config import settings
 SYMBOL = settings.symbol
 TIMEFRAME = getattr(mt5, f"TIMEFRAME_{settings.timeframe_name}", mt5.TIMEFRAME_M5)
 CANDLE_COUNT = 100
-MODEL_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "models", "xauusd_model.pkl"))
+MODEL_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models", "xauusd_model.pkl"))
 if not os.path.exists(MODEL_PATH):
     raise FileNotFoundError(f"XAUUSD model not found: {MODEL_PATH}")
 xau_model = joblib.load(MODEL_PATH)
