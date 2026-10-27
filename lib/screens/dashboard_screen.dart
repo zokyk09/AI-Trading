@@ -151,7 +151,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const Text('Belum ada file hasil backtest yang bisa ditampilkan.')
           else ...[
             DropdownButtonFormField<String>(
-              value: _selectedBacktestId,
+              initialValue: _selectedBacktestId,
               isExpanded: true,
               decoration: const InputDecoration(
                 labelText: 'Pilih laporan backtest',
